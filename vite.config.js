@@ -8,10 +8,10 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['vite.svg'],
+      includeAssets: ['logo.png'],
       manifest: {
-        name: 'Finanzas Pro',
-        short_name: 'Finanzas Pro',
+        name: 'Calculadora Objetivo Mensual',
+        short_name: 'Objetivo Mensual',
         description: 'Administra tus finanzas personales de forma simple y efectiva',
         theme_color: '#2563eb',
         background_color: '#0f172a',
@@ -21,9 +21,9 @@ export default defineConfig({
         start_url: '/CalculadoraObjetivoMensual/',
         icons: [
           {
-            src: '/CalculadoraObjetivoMensual/vite.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
+            src: '/CalculadoraObjetivoMensual/logo.png',
+            sizes: '512x512',
+            type: 'image/png',
             purpose: 'any maskable'
           }
         ]

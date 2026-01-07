@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { PlusCircle, Trash2, DollarSign, PieChart, Moon, Sun, RotateCcw } from 'lucide-react';
 import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import TransaccionItem from './TransaccionItem.jsx';
 
 // Helper para almacenamiento - definido fuera del componente
 const getStorage = () => {
@@ -181,9 +182,9 @@ export default function PresupuestoMensual() {
     }]);
   };
 
-  const eliminarTransaccion = (id) => {
+  const eliminarTransaccion = useCallback((id) => {
     setTransacciones(prevTransacciones => prevTransacciones.filter(t => t.id !== id));
-  };
+  }, []);
 
   const reiniciar = async () => {
     setTransacciones([]);
@@ -197,32 +198,26 @@ export default function PresupuestoMensual() {
     }
   };
 
-  const actualizarTransaccion = (id, campo, valor) => {
-    console.log('Actualizando:', id, campo, valor); // Debug para móvil
-
+  const actualizarTransaccion = useCallback((id, campo, valor) => {
     setTransacciones(prevTransacciones => {
-      const nuevas = prevTransacciones.map(t => {
+      return prevTransacciones.map(t => {
         if (t.id !== id) return t;
 
         const actualizada = { ...t };
 
         if (campo === 'monto') {
-          // Validar que no sea negativo
           const montoValor = parseFloat(valor) || 0;
           actualizada[campo] = montoValor >= 0 ? montoValor : 0;
         } else if (campo === 'interes') {
-          // Validar rango de interés: 0-300%
           let interesValor = parseFloat(valor) || 0;
           if (interesValor < 0) interesValor = 0;
           if (interesValor > 300) interesValor = 300;
           actualizada[campo] = interesValor;
         } else if (campo === 'tipo') {
           actualizada[campo] = valor;
-          // Resetear interés cuando no es deuda
           if (valor !== 'deuda') {
             actualizada.interes = 0;
           }
-          // Asignar categoría por defecto según tipo
           if (valor === 'gasto') {
             actualizada.categoria = 'casa';
           } else if (valor === 'ingreso') {
@@ -230,24 +225,14 @@ export default function PresupuestoMensual() {
           } else if (valor === 'deuda') {
             actualizada.categoria = 'prestamo';
           }
-        } else if (campo === 'categoria' && valor === 'personalizada') {
-          // Si selecciona personalizada, habilitar modo edición
-          actualizada.categoriaPersonalizada = true;
-          actualizada[campo] = '';
-        } else if (campo === 'categoriaTexto') {
-          // Actualizar el texto de categoría personalizada
-          actualizada.categoria = valor;
         } else {
           actualizada[campo] = valor;
         }
 
         return actualizada;
       });
-
-      console.log('Estado actualizado'); // Debug
-      return nuevas;
     });
-  };
+  }, []);
 
   // Función para calcular el total de una deuda con interés
   const calcularTotalDeuda = (monto, interes) => {
@@ -516,130 +501,21 @@ export default function PresupuestoMensual() {
           {/* Contenedor con scroll limitado */}
           <div className="max-h-96 overflow-y-auto pr-2 space-y-2">
             {transacciones.map((t) => (
-              <div key={t.id} className={`p-3 rounded-lg border ${borderColor} ${modoOscuro ? 'bg-slate-700/30' : 'bg-slate-50'}`}>
-                {/* Primera fila: Fecha, Tipo y Categoría */}
-                <div className="flex items-center gap-2 mb-2">
-                  <input
-                    type="date"
-                    value={t.fecha || ''}
-                    onChange={(e) => actualizarTransaccion(t.id, 'fecha', e.target.value)}
-                    className={`w-32 px-2 py-1.5 border rounded text-xs ${inputBg}`}
-                  />
-
-                  <select
-                    value={t.tipo || 'gasto'}
-                    onChange={(e) => actualizarTransaccion(t.id, 'tipo', e.target.value)}
-                    className={`w-24 px-2 py-1.5 border rounded text-xs ${inputBg}`}
-                  >
-                    <option value="gasto">Gasto</option>
-                    <option value="ingreso">Ingreso</option>
-                    <option value="deuda">Deuda</option>
-                  </select>
-
-                  {/* Categoría: Select o Input según si es personalizada */}
-                  {t.categoriaPersonalizada ? (
-                    <input
-                      type="text"
-                      placeholder="Escribe tu categoría"
-                      value={t.categoria || ''}
-                      onChange={(e) => actualizarTransaccion(t.id, 'categoriaTexto', e.target.value)}
-                      onBlur={() => {
-                        // Al salir del campo, si está vacío, volver al select
-                        if (!t.categoria) {
-                          setTransacciones(prevTransacciones =>
-                            prevTransacciones.map(trans =>
-                              trans.id === t.id
-                                ? { ...trans, categoriaPersonalizada: false, categoria: t.tipo === 'gasto' ? 'casa' : t.tipo === 'ingreso' ? 'salario' : 'prestamo' }
-                                : trans
-                            )
-                          );
-                        }
-                      }}
-                      className={`flex-1 min-w-0 px-2 py-1.5 border rounded text-xs ${inputBg}`}
-                    />
-                  ) : (
-                    <select
-                      value={t.categoria || 'casa'}
-                      onChange={(e) => actualizarTransaccion(t.id, 'categoria', e.target.value)}
-                      className={`flex-1 min-w-0 px-2 py-1.5 border rounded text-xs ${inputBg}`}
-                    >
-                      {t.tipo === 'gasto'
-                        ? Object.entries(categoriasGastos).map(([key, nombre]) => (
-                            <option key={key} value={key}>{nombre}</option>
-                          ))
-                        : t.tipo === 'ingreso'
-                        ? Object.entries(categoriasIngresos).map(([key, nombre]) => (
-                            <option key={key} value={key}>{nombre}</option>
-                          ))
-                        : Object.entries(categoriasDeudas).map(([key, nombre]) => (
-                            <option key={key} value={key}>{nombre}</option>
-                          ))
-                      }
-                    </select>
-                  )}
-
-                  <button
-                    onClick={() => eliminarTransaccion(t.id)}
-                    className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-
-                {/* Segunda fila: Concepto, Monto e Interés (si es deuda) */}
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    placeholder="Concepto"
-                    value={t.concepto || ''}
-                    onChange={(e) => actualizarTransaccion(t.id, 'concepto', e.target.value)}
-                    className={`flex-1 min-w-0 px-2 py-1.5 border rounded text-xs ${inputBg}`}
-                  />
-
-                  <input
-                    type="number"
-                    placeholder="Monto"
-                    value={t.monto || ''}
-                    onChange={(e) => actualizarTransaccion(t.id, 'monto', e.target.value)}
-                    min="0"
-                    step="0.01"
-                    className={`w-24 px-2 py-1.5 border rounded text-xs ${inputBg}`}
-                  />
-
-                  {/* Campo de Interés - Solo visible para deudas */}
-                  {t.tipo === 'deuda' && (
-                    <div className="flex items-center gap-1">
-                      <input
-                        type="number"
-                        placeholder="Interés %"
-                        value={t.interes || ''}
-                        onChange={(e) => actualizarTransaccion(t.id, 'interes', e.target.value)}
-                        min="0"
-                        max="300"
-                        step="0.1"
-                        className={`w-20 px-2 py-1.5 border rounded text-xs ${inputBg}`}
-                        title="Porcentaje de interés (0-300%)"
-                      />
-                      <span className={`text-xs ${textSecondary}`}>%</span>
-                    </div>
-                  )}
-
-                  {/* Total calculado - Solo visible para deudas */}
-                  {t.tipo === 'deuda' && t.monto > 0 && (
-                    <div className={`px-2 py-1.5 rounded text-xs font-semibold ${modoOscuro ? 'bg-yellow-900/30 text-yellow-400' : 'bg-yellow-100 text-yellow-800'} whitespace-nowrap`}>
-                      Total: {formatearMoneda(calcularTotalDeuda(t.monto, t.interes))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Ayuda contextual para deudas */}
-                {t.tipo === 'deuda' && (
-                  <div className={`mt-2 text-xs ${textSecondary} flex items-center gap-1`}>
-                    <span>💡</span>
-                    <span>El interés se suma automáticamente al monto de la deuda</span>
-                  </div>
-                )}
-              </div>
+              <TransaccionItem
+                key={t.id}
+                transaccion={t}
+                onUpdate={actualizarTransaccion}
+                onDelete={eliminarTransaccion}
+                categoriasGastos={categoriasGastos}
+                categoriasIngresos={categoriasIngresos}
+                categoriasDeudas={categoriasDeudas}
+                inputBg={inputBg}
+                borderColor={borderColor}
+                modoOscuro={modoOscuro}
+                textSecondary={textSecondary}
+                formatearMoneda={formatearMoneda}
+                calcularTotalDeuda={calcularTotalDeuda}
+              />
             ))}
 
             {transacciones.length === 0 && (

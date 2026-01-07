@@ -460,13 +460,13 @@ export default function PresupuestoMensual() {
                 <div className="flex items-center gap-2 mb-2">
                   <input
                     type="date"
-                    value={t.fecha}
+                    value={t.fecha || ''}
                     onChange={(e) => actualizarTransaccion(t.id, 'fecha', e.target.value)}
                     className={`w-32 px-2 py-1.5 border rounded text-xs ${inputBg}`}
                   />
 
                   <select
-                    value={t.tipo}
+                    value={t.tipo || 'gasto'}
                     onChange={(e) => actualizarTransaccion(t.id, 'tipo', e.target.value)}
                     className={`w-24 px-2 py-1.5 border rounded text-xs ${inputBg}`}
                   >
@@ -480,7 +480,7 @@ export default function PresupuestoMensual() {
                     <input
                       type="text"
                       placeholder="Escribe tu categoría"
-                      value={t.categoria}
+                      value={t.categoria || ''}
                       onChange={(e) => actualizarTransaccion(t.id, 'categoriaTexto', e.target.value)}
                       onBlur={() => {
                         // Al salir del campo, si está vacío, volver al select
@@ -498,7 +498,7 @@ export default function PresupuestoMensual() {
                     />
                   ) : (
                     <select
-                      value={t.categoria}
+                      value={t.categoria || 'casa'}
                       onChange={(e) => actualizarTransaccion(t.id, 'categoria', e.target.value)}
                       className={`flex-1 min-w-0 px-2 py-1.5 border rounded text-xs ${inputBg}`}
                     >
@@ -530,7 +530,7 @@ export default function PresupuestoMensual() {
                   <input
                     type="text"
                     placeholder="Concepto"
-                    value={t.concepto}
+                    value={t.concepto || ''}
                     onChange={(e) => actualizarTransaccion(t.id, 'concepto', e.target.value)}
                     className={`flex-1 min-w-0 px-2 py-1.5 border rounded text-xs ${inputBg}`}
                   />

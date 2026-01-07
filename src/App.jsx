@@ -344,6 +344,11 @@ export default function PresupuestoMensual() {
       <div className="max-w-7xl mx-auto">
         {/* Título Principal */}
         <div className="text-center mb-6">
+          <img
+            src="/logo.png"
+            alt="Logo Calculadora Objetivo Mensual"
+            className="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-4 drop-shadow-lg"
+          />
           <h1 className={`text-3xl sm:text-4xl font-bold ${textPrimary} mb-2`}>
             Calculadora Objetivo Mensual
           </h1>

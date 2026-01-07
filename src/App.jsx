@@ -170,7 +170,7 @@ export default function PresupuestoMensual() {
 
   const agregarTransaccion = () => {
     const hoy = new Date().toISOString().split('T')[0];
-    setTransacciones([...transacciones, {
+    setTransacciones(prevTransacciones => [...prevTransacciones, {
       id: Date.now() + Math.random(), // ID único para cada transacción
       tipo: 'gasto',
       categoria: 'casa',
@@ -182,7 +182,7 @@ export default function PresupuestoMensual() {
   };
 
   const eliminarTransaccion = (id) => {
-    setTransacciones(transacciones.filter(t => t.id !== id));
+    setTransacciones(prevTransacciones => prevTransacciones.filter(t => t.id !== id));
   };
 
   const reiniciar = async () => {
@@ -546,16 +546,16 @@ export default function PresupuestoMensual() {
                       onBlur={() => {
                         // Al salir del campo, si está vacío, volver al select
                         if (!t.categoria) {
-                          const nuevas = transacciones.map(trans =>
-                            trans.id === t.id
-                              ? { ...trans, categoriaPersonalizada: false, categoria: t.tipo === 'gasto' ? 'casa' : t.tipo === 'ingreso' ? 'salario' : 'prestamo' }
-                              : trans
+                          setTransacciones(prevTransacciones =>
+                            prevTransacciones.map(trans =>
+                              trans.id === t.id
+                                ? { ...trans, categoriaPersonalizada: false, categoria: t.tipo === 'gasto' ? 'casa' : t.tipo === 'ingreso' ? 'salario' : 'prestamo' }
+                                : trans
+                            )
                           );
-                          setTransacciones(nuevas);
                         }
                       }}
                       className={`flex-1 min-w-0 px-2 py-1.5 border rounded text-xs ${inputBg}`}
-                      autoFocus
                     />
                   ) : (
                     <select

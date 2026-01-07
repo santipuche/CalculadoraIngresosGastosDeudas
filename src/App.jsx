@@ -345,7 +345,7 @@ export default function PresupuestoMensual() {
         {/* Título Principal */}
         <div className="text-center mb-6">
           <img
-            src="/logo.png"
+            src={`${import.meta.env.BASE_URL}logo.png`}
             alt="Logo Calculadora de Ingresos, Costos y Deudas"
             className="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-4 drop-shadow-lg"
           />

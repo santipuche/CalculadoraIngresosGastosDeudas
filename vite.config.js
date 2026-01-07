@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['vite.svg'],
+      includeAssets: ['logo.png'],
       manifest: {
         name: 'Calculadora Objetivo Mensual',
         short_name: 'Objetivo Mensual',
@@ -21,9 +21,9 @@ export default defineConfig({
         start_url: '/CalculadoraObjetivoMensual/',
         icons: [
           {
-            src: '/CalculadoraObjetivoMensual/vite.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
+            src: '/CalculadoraObjetivoMensual/logo.png',
+            sizes: '512x512',
+            type: 'image/png',
             purpose: 'any maskable'
           }
         ]

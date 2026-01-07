@@ -17,11 +17,11 @@ export default defineConfig({
         background_color: '#0f172a',
         display: 'standalone',
         orientation: 'portrait',
-        scope: '/CalculadoraObjetivoMensual/',
-        start_url: '/CalculadoraObjetivoMensual/',
+        scope: '/CalculadoraIngresosGastosDeudas/',
+        start_url: '/CalculadoraIngresosGastosDeudas/',
         icons: [
           {
-            src: '/CalculadoraObjetivoMensual/logo.png',
+            src: '/CalculadoraIngresosGastosDeudas/logo.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable'
@@ -63,5 +63,5 @@ export default defineConfig({
       }
     })
   ],
-  base: '/CalculadoraObjetivoMensual/'
+  base: '/CalculadoraIngresosGastosDeudas/'
 })

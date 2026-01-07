@@ -11,6 +11,43 @@ export default function PresupuestoMensual() {
     return `$${entero},${decimal}`;
   };
 
+  // Helper para almacenamiento que funciona como fallback
+  const getStorage = () => {
+    if (typeof window !== 'undefined' && window.storage) {
+      return window.storage;
+    }
+    // Fallback a localStorage directo
+    return {
+      async get(key) {
+        try {
+          const value = localStorage.getItem(key);
+          return { value };
+        } catch (error) {
+          console.error('Error al obtener del storage:', error);
+          return { value: null };
+        }
+      },
+      async set(key, value) {
+        try {
+          localStorage.setItem(key, value);
+          return { success: true };
+        } catch (error) {
+          console.error('Error al guardar en storage:', error);
+          return { success: false };
+        }
+      },
+      async delete(key) {
+        try {
+          localStorage.removeItem(key);
+          return { success: true };
+        } catch (error) {
+          console.error('Error al eliminar del storage:', error);
+          return { success: false };
+        }
+      }
+    };
+  };
+
   // Cargar datos desde el almacenamiento al iniciar
   const [transacciones, setTransacciones] = useState([]);
   const [modoOscuro, setModoOscuro] = useState(false);
@@ -20,9 +57,10 @@ export default function PresupuestoMensual() {
   // Cargar datos al montar el componente
   useEffect(() => {
     const cargarDatos = async () => {
+      const storage = getStorage();
       try {
         // Cargar transacciones
-        const resultadoTransacciones = await window.storage.get('transacciones');
+        const resultadoTransacciones = await storage.get('transacciones');
         if (resultadoTransacciones && resultadoTransacciones.value) {
           try {
             const transaccionesCargadas = JSON.parse(resultadoTransacciones.value);
@@ -35,13 +73,13 @@ export default function PresupuestoMensual() {
           } catch (parseError) {
             console.error('Error al parsear transacciones, limpiando datos:', parseError);
             // Si los datos están corruptos, limpiar
-            await window.storage.delete('transacciones');
+            await storage.delete('transacciones');
             setTransacciones([]);
           }
         }
 
         // Cargar preferencia de modo oscuro
-        const resultadoModo = await window.storage.get('modoOscuro');
+        const resultadoModo = await storage.get('modoOscuro');
         if (resultadoModo && resultadoModo.value) {
           try {
             setModoOscuro(JSON.parse(resultadoModo.value));
@@ -67,8 +105,9 @@ export default function PresupuestoMensual() {
   useEffect(() => {
     if (!cargando && transacciones.length >= 0) {
       const guardarTransacciones = async () => {
+        const storage = getStorage();
         try {
-          await window.storage.set('transacciones', JSON.stringify(transacciones));
+          await storage.set('transacciones', JSON.stringify(transacciones));
         } catch (error) {
           console.error('Error al guardar transacciones:', error);
         }
@@ -81,8 +120,9 @@ export default function PresupuestoMensual() {
   useEffect(() => {
     if (!cargando) {
       const guardarModo = async () => {
+        const storage = getStorage();
         try {
-          await window.storage.set('modoOscuro', JSON.stringify(modoOscuro));
+          await storage.set('modoOscuro', JSON.stringify(modoOscuro));
         } catch (error) {
           console.error('Error al guardar modo oscuro:', error);
         }
@@ -148,8 +188,9 @@ export default function PresupuestoMensual() {
     setTransacciones([]);
     setMostrarConfirmacion(false);
     // Limpiar el almacenamiento
+    const storage = getStorage();
     try {
-      await window.storage.delete('transacciones');
+      await storage.delete('transacciones');
     } catch (error) {
       console.error('Error al limpiar datos:', error);
     }

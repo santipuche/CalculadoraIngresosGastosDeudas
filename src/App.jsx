@@ -198,50 +198,55 @@ export default function PresupuestoMensual() {
   };
 
   const actualizarTransaccion = (id, campo, valor) => {
-    const nuevas = transacciones.map(t => {
-      if (t.id !== id) return t;
+    console.log('Actualizando:', id, campo, valor); // Debug para móvil
 
-      const actualizada = { ...t };
+    setTransacciones(prevTransacciones => {
+      const nuevas = prevTransacciones.map(t => {
+        if (t.id !== id) return t;
 
-      if (campo === 'monto') {
-        // Validar que no sea negativo
-        const montoValor = parseFloat(valor) || 0;
-        actualizada[campo] = montoValor >= 0 ? montoValor : 0;
-      } else if (campo === 'interes') {
-        // Validar rango de interés: 0-300%
-        let interesValor = parseFloat(valor) || 0;
-        if (interesValor < 0) interesValor = 0;
-        if (interesValor > 300) interesValor = 300;
-        actualizada[campo] = interesValor;
-      } else if (campo === 'tipo') {
-        actualizada[campo] = valor;
-        // Resetear interés cuando no es deuda
-        if (valor !== 'deuda') {
-          actualizada.interes = 0;
+        const actualizada = { ...t };
+
+        if (campo === 'monto') {
+          // Validar que no sea negativo
+          const montoValor = parseFloat(valor) || 0;
+          actualizada[campo] = montoValor >= 0 ? montoValor : 0;
+        } else if (campo === 'interes') {
+          // Validar rango de interés: 0-300%
+          let interesValor = parseFloat(valor) || 0;
+          if (interesValor < 0) interesValor = 0;
+          if (interesValor > 300) interesValor = 300;
+          actualizada[campo] = interesValor;
+        } else if (campo === 'tipo') {
+          actualizada[campo] = valor;
+          // Resetear interés cuando no es deuda
+          if (valor !== 'deuda') {
+            actualizada.interes = 0;
+          }
+          // Asignar categoría por defecto según tipo
+          if (valor === 'gasto') {
+            actualizada.categoria = 'casa';
+          } else if (valor === 'ingreso') {
+            actualizada.categoria = 'salario';
+          } else if (valor === 'deuda') {
+            actualizada.categoria = 'prestamo';
+          }
+        } else if (campo === 'categoria' && valor === 'personalizada') {
+          // Si selecciona personalizada, habilitar modo edición
+          actualizada.categoriaPersonalizada = true;
+          actualizada[campo] = '';
+        } else if (campo === 'categoriaTexto') {
+          // Actualizar el texto de categoría personalizada
+          actualizada.categoria = valor;
+        } else {
+          actualizada[campo] = valor;
         }
-        // Asignar categoría por defecto según tipo
-        if (valor === 'gasto') {
-          actualizada.categoria = 'casa';
-        } else if (valor === 'ingreso') {
-          actualizada.categoria = 'salario';
-        } else if (valor === 'deuda') {
-          actualizada.categoria = 'prestamo';
-        }
-      } else if (campo === 'categoria' && valor === 'personalizada') {
-        // Si selecciona personalizada, habilitar modo edición
-        actualizada.categoriaPersonalizada = true;
-        actualizada[campo] = '';
-      } else if (campo === 'categoriaTexto') {
-        // Actualizar el texto de categoría personalizada
-        actualizada.categoria = valor;
-      } else {
-        actualizada[campo] = valor;
-      }
 
-      return actualizada;
+        return actualizada;
+      });
+
+      console.log('Estado actualizado'); // Debug
+      return nuevas;
     });
-
-    setTransacciones(nuevas);
   };
 
   // Función para calcular el total de una deuda con interés

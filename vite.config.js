@@ -10,8 +10,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['vite.svg'],
       manifest: {
-        name: 'Finanzas Pro',
-        short_name: 'Finanzas Pro',
+        name: 'Calculadora Objetivo Mensual',
+        short_name: 'Objetivo Mensual',
         description: 'Administra tus finanzas personales de forma simple y efectiva',
         theme_color: '#2563eb',
         background_color: '#0f172a',

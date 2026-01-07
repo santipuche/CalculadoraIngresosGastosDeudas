@@ -10,8 +10,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['logo.png'],
       manifest: {
-        name: 'Calculadora Objetivo Mensual',
-        short_name: 'Objetivo Mensual',
+        name: 'Calculadora de Ingresos, Costos y Deudas',
+        short_name: 'Calc. Finanzas',
         description: 'Administra tus finanzas personales de forma simple y efectiva',
         theme_color: '#2563eb',
         background_color: '#0f172a',

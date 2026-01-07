@@ -346,11 +346,11 @@ export default function PresupuestoMensual() {
         <div className="text-center mb-6">
           <img
             src="/logo.png"
-            alt="Logo Calculadora Objetivo Mensual"
+            alt="Logo Calculadora de Ingresos, Costos y Deudas"
             className="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-4 drop-shadow-lg"
           />
           <h1 className={`text-3xl sm:text-4xl font-bold ${textPrimary} mb-2`}>
-            Calculadora Objetivo Mensual
+            Calculadora de Ingresos, Costos y Deudas
           </h1>
           <p className={`${textSecondary} text-sm sm:text-base`}>
             Administra tus finanzas personales de forma simple y efectiva

@@ -24,23 +24,37 @@ export default function PresupuestoMensual() {
         // Cargar transacciones
         const resultadoTransacciones = await window.storage.get('transacciones');
         if (resultadoTransacciones && resultadoTransacciones.value) {
-          const transaccionesCargadas = JSON.parse(resultadoTransacciones.value);
-          // Asignar IDs únicos a transacciones que no los tengan (migración)
-          const transaccionesConId = transaccionesCargadas.map((t, index) => ({
-            ...t,
-            id: t.id || Date.now() + index + Math.random()
-          }));
-          setTransacciones(transaccionesConId);
+          try {
+            const transaccionesCargadas = JSON.parse(resultadoTransacciones.value);
+            // Asignar IDs únicos a transacciones que no los tengan (migración)
+            const transaccionesConId = transaccionesCargadas.map((t, index) => ({
+              ...t,
+              id: t.id || Date.now() + index + Math.random()
+            }));
+            setTransacciones(transaccionesConId);
+          } catch (parseError) {
+            console.error('Error al parsear transacciones, limpiando datos:', parseError);
+            // Si los datos están corruptos, limpiar
+            await window.storage.delete('transacciones');
+            setTransacciones([]);
+          }
         }
 
         // Cargar preferencia de modo oscuro
         const resultadoModo = await window.storage.get('modoOscuro');
         if (resultadoModo && resultadoModo.value) {
-          setModoOscuro(JSON.parse(resultadoModo.value));
+          try {
+            setModoOscuro(JSON.parse(resultadoModo.value));
+          } catch (parseError) {
+            console.error('Error al parsear modo oscuro:', parseError);
+            setModoOscuro(false);
+          }
         }
       } catch (error) {
         console.log('Primera vez usando la app o error al cargar:', error);
         // Si es la primera vez, los valores ya están en 0 por defecto
+        setTransacciones([]);
+        setModoOscuro(false);
       } finally {
         setCargando(false);
       }

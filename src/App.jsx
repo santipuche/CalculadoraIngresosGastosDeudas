@@ -110,6 +110,7 @@ export default function PresupuestoMensual() {
   const agregarTransaccion = () => {
     const hoy = new Date().toISOString().split('T')[0];
     setTransacciones([...transacciones, {
+      id: Date.now() + Math.random(), // ID único para cada transacción
       tipo: 'gasto',
       categoria: 'casa',
       concepto: '',
@@ -119,8 +120,8 @@ export default function PresupuestoMensual() {
     }]);
   };
 
-  const eliminarTransaccion = (index) => {
-    setTransacciones(transacciones.filter((_, i) => i !== index));
+  const eliminarTransaccion = (id) => {
+    setTransacciones(transacciones.filter(t => t.id !== id));
   };
 
   const reiniciar = async () => {
@@ -134,43 +135,49 @@ export default function PresupuestoMensual() {
     }
   };
 
-  const actualizarTransaccion = (index, campo, valor) => {
-    const nuevas = [...transacciones];
+  const actualizarTransaccion = (id, campo, valor) => {
+    const nuevas = transacciones.map(t => {
+      if (t.id !== id) return t;
 
-    if (campo === 'monto') {
-      // Validar que no sea negativo
-      const montoValor = parseFloat(valor) || 0;
-      nuevas[index][campo] = montoValor >= 0 ? montoValor : 0;
-    } else if (campo === 'interes') {
-      // Validar rango de interés: 0-300%
-      let interesValor = parseFloat(valor) || 0;
-      if (interesValor < 0) interesValor = 0;
-      if (interesValor > 300) interesValor = 300;
-      nuevas[index][campo] = interesValor;
-    } else if (campo === 'tipo') {
-      nuevas[index][campo] = valor;
-      // Resetear interés cuando no es deuda
-      if (valor !== 'deuda') {
-        nuevas[index].interes = 0;
+      const actualizada = { ...t };
+
+      if (campo === 'monto') {
+        // Validar que no sea negativo
+        const montoValor = parseFloat(valor) || 0;
+        actualizada[campo] = montoValor >= 0 ? montoValor : 0;
+      } else if (campo === 'interes') {
+        // Validar rango de interés: 0-300%
+        let interesValor = parseFloat(valor) || 0;
+        if (interesValor < 0) interesValor = 0;
+        if (interesValor > 300) interesValor = 300;
+        actualizada[campo] = interesValor;
+      } else if (campo === 'tipo') {
+        actualizada[campo] = valor;
+        // Resetear interés cuando no es deuda
+        if (valor !== 'deuda') {
+          actualizada.interes = 0;
+        }
+        // Asignar categoría por defecto según tipo
+        if (valor === 'gasto') {
+          actualizada.categoria = 'casa';
+        } else if (valor === 'ingreso') {
+          actualizada.categoria = 'salario';
+        } else if (valor === 'deuda') {
+          actualizada.categoria = 'prestamo';
+        }
+      } else if (campo === 'categoria' && valor === 'personalizada') {
+        // Si selecciona personalizada, habilitar modo edición
+        actualizada.categoriaPersonalizada = true;
+        actualizada[campo] = '';
+      } else if (campo === 'categoriaTexto') {
+        // Actualizar el texto de categoría personalizada
+        actualizada.categoria = valor;
+      } else {
+        actualizada[campo] = valor;
       }
-      // Asignar categoría por defecto según tipo
-      if (valor === 'gasto') {
-        nuevas[index].categoria = 'casa';
-      } else if (valor === 'ingreso') {
-        nuevas[index].categoria = 'salario';
-      } else if (valor === 'deuda') {
-        nuevas[index].categoria = 'prestamo';
-      }
-    } else if (campo === 'categoria' && valor === 'personalizada') {
-      // Si selecciona personalizada, habilitar modo edición
-      nuevas[index].categoriaPersonalizada = true;
-      nuevas[index][campo] = '';
-    } else if (campo === 'categoriaTexto') {
-      // Actualizar el texto de categoría personalizada
-      nuevas[index].categoria = valor;
-    } else {
-      nuevas[index][campo] = valor;
-    }
+
+      return actualizada;
+    });
 
     setTransacciones(nuevas);
   };
@@ -441,20 +448,20 @@ export default function PresupuestoMensual() {
 
           {/* Contenedor con scroll limitado */}
           <div className="max-h-96 overflow-y-auto pr-2 space-y-2">
-            {transacciones.map((t, index) => (
-              <div key={index} className={`p-3 rounded-lg border ${borderColor} ${modoOscuro ? 'bg-slate-700/30' : 'bg-slate-50'}`}>
+            {transacciones.map((t) => (
+              <div key={t.id} className={`p-3 rounded-lg border ${borderColor} ${modoOscuro ? 'bg-slate-700/30' : 'bg-slate-50'}`}>
                 {/* Primera fila: Fecha, Tipo y Categoría */}
                 <div className="flex items-center gap-2 mb-2">
                   <input
                     type="date"
                     value={t.fecha}
-                    onChange={(e) => actualizarTransaccion(index, 'fecha', e.target.value)}
+                    onChange={(e) => actualizarTransaccion(t.id, 'fecha', e.target.value)}
                     className={`w-32 px-2 py-1.5 border rounded text-xs ${inputBg}`}
                   />
 
                   <select
                     value={t.tipo}
-                    onChange={(e) => actualizarTransaccion(index, 'tipo', e.target.value)}
+                    onChange={(e) => actualizarTransaccion(t.id, 'tipo', e.target.value)}
                     className={`w-24 px-2 py-1.5 border rounded text-xs ${inputBg}`}
                   >
                     <option value="gasto">Gasto</option>
@@ -468,13 +475,15 @@ export default function PresupuestoMensual() {
                       type="text"
                       placeholder="Escribe tu categoría"
                       value={t.categoria}
-                      onChange={(e) => actualizarTransaccion(index, 'categoriaTexto', e.target.value)}
+                      onChange={(e) => actualizarTransaccion(t.id, 'categoriaTexto', e.target.value)}
                       onBlur={() => {
                         // Al salir del campo, si está vacío, volver al select
                         if (!t.categoria) {
-                          const nuevas = [...transacciones];
-                          nuevas[index].categoriaPersonalizada = false;
-                          nuevas[index].categoria = t.tipo === 'gasto' ? 'casa' : t.tipo === 'ingreso' ? 'salario' : 'prestamo';
+                          const nuevas = transacciones.map(trans =>
+                            trans.id === t.id
+                              ? { ...trans, categoriaPersonalizada: false, categoria: t.tipo === 'gasto' ? 'casa' : t.tipo === 'ingreso' ? 'salario' : 'prestamo' }
+                              : trans
+                          );
                           setTransacciones(nuevas);
                         }
                       }}
@@ -484,7 +493,7 @@ export default function PresupuestoMensual() {
                   ) : (
                     <select
                       value={t.categoria}
-                      onChange={(e) => actualizarTransaccion(index, 'categoria', e.target.value)}
+                      onChange={(e) => actualizarTransaccion(t.id, 'categoria', e.target.value)}
                       className={`flex-1 min-w-0 px-2 py-1.5 border rounded text-xs ${inputBg}`}
                     >
                       {t.tipo === 'gasto'
@@ -503,7 +512,7 @@ export default function PresupuestoMensual() {
                   )}
 
                   <button
-                    onClick={() => eliminarTransaccion(index)}
+                    onClick={() => eliminarTransaccion(t.id)}
                     className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition"
                   >
                     <Trash2 size={16} />
@@ -516,7 +525,7 @@ export default function PresupuestoMensual() {
                     type="text"
                     placeholder="Concepto"
                     value={t.concepto}
-                    onChange={(e) => actualizarTransaccion(index, 'concepto', e.target.value)}
+                    onChange={(e) => actualizarTransaccion(t.id, 'concepto', e.target.value)}
                     className={`flex-1 min-w-0 px-2 py-1.5 border rounded text-xs ${inputBg}`}
                   />
 
@@ -524,7 +533,7 @@ export default function PresupuestoMensual() {
                     type="number"
                     placeholder="Monto"
                     value={t.monto || ''}
-                    onChange={(e) => actualizarTransaccion(index, 'monto', e.target.value)}
+                    onChange={(e) => actualizarTransaccion(t.id, 'monto', e.target.value)}
                     min="0"
                     step="0.01"
                     className={`w-24 px-2 py-1.5 border rounded text-xs ${inputBg}`}
@@ -537,7 +546,7 @@ export default function PresupuestoMensual() {
                         type="number"
                         placeholder="Interés %"
                         value={t.interes || ''}
-                        onChange={(e) => actualizarTransaccion(index, 'interes', e.target.value)}
+                        onChange={(e) => actualizarTransaccion(t.id, 'interes', e.target.value)}
                         min="0"
                         max="300"
                         step="0.1"

@@ -10,18 +10,18 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['logo.png'],
       manifest: {
-        name: 'Calculadora Objetivo Mensual',
-        short_name: 'Objetivo Mensual',
+        name: 'Calculadora de Ingresos, Costos y Deudas',
+        short_name: 'Calc. Finanzas',
         description: 'Administra tus finanzas personales de forma simple y efectiva',
         theme_color: '#2563eb',
         background_color: '#0f172a',
         display: 'standalone',
         orientation: 'portrait',
-        scope: '/CalculadoraObjetivoMensual/',
-        start_url: '/CalculadoraObjetivoMensual/',
+        scope: '/CalculadoraIngresosGastosDeudas/',
+        start_url: '/CalculadoraIngresosGastosDeudas/',
         icons: [
           {
-            src: '/CalculadoraObjetivoMensual/logo.png',
+            src: '/CalculadoraIngresosGastosDeudas/logo.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable'
@@ -63,5 +63,5 @@ export default defineConfig({
       }
     })
   ],
-  base: '/CalculadoraObjetivoMensual/'
+  base: '/CalculadoraIngresosGastosDeudas/'
 })

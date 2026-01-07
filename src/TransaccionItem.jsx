@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useState, useEffect } from 'react';
 import { Trash2 } from 'lucide-react';
 
 const TransaccionItem = memo(({
@@ -16,6 +16,20 @@ const TransaccionItem = memo(({
   calcularTotalDeuda
 }) => {
   const t = transaccion;
+
+  // Estado local para evitar que el padre re-renderice mientras escribes
+  const [localConcepto, setLocalConcepto] = useState(t.concepto || '');
+  const [localMonto, setLocalMonto] = useState(t.monto || '');
+  const [localInteres, setLocalInteres] = useState(t.interes || '');
+  const [localFecha, setLocalFecha] = useState(t.fecha || '');
+
+  // Sincronizar estado local si el padre cambia (por ejemplo, al cargar datos)
+  useEffect(() => {
+    setLocalConcepto(t.concepto || '');
+    setLocalMonto(t.monto || '');
+    setLocalInteres(t.interes || '');
+    setLocalFecha(t.fecha || '');
+  }, [t.id]); // Solo cuando cambia la transacción completa, no en cada campo
 
   return (
     <div className={`p-4 rounded-xl border-2 ${borderColor} ${modoOscuro ? 'bg-slate-700/40' : 'bg-white'} shadow-sm`}>
@@ -76,8 +90,9 @@ const TransaccionItem = memo(({
         </label>
         <input
           type="text"
-          value={t.concepto || ''}
-          onChange={(e) => onUpdate(t.id, 'concepto', e.target.value)}
+          value={localConcepto}
+          onChange={(e) => setLocalConcepto(e.target.value)}
+          onBlur={(e) => onUpdate(t.id, 'concepto', e.target.value)}
           placeholder="Ej: Supermercado, Salario, etc."
           className={`w-full px-3 py-2.5 border-2 rounded-lg text-sm ${inputBg} focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
         />
@@ -91,8 +106,9 @@ const TransaccionItem = memo(({
           </label>
           <input
             type="date"
-            value={t.fecha || ''}
-            onChange={(e) => onUpdate(t.id, 'fecha', e.target.value)}
+            value={localFecha}
+            onChange={(e) => setLocalFecha(e.target.value)}
+            onBlur={(e) => onUpdate(t.id, 'fecha', e.target.value)}
             className={`w-full px-3 py-2.5 border-2 rounded-lg text-sm ${inputBg} focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
           />
         </div>
@@ -103,8 +119,9 @@ const TransaccionItem = memo(({
           <input
             type="number"
             inputMode="decimal"
-            value={t.monto || ''}
-            onChange={(e) => onUpdate(t.id, 'monto', e.target.value)}
+            value={localMonto}
+            onChange={(e) => setLocalMonto(e.target.value)}
+            onBlur={(e) => onUpdate(t.id, 'monto', e.target.value)}
             placeholder="0.00"
             min="0"
             step="0.01"
@@ -123,8 +140,9 @@ const TransaccionItem = memo(({
             <input
               type="number"
               inputMode="decimal"
-              value={t.interes || ''}
-              onChange={(e) => onUpdate(t.id, 'interes', e.target.value)}
+              value={localInteres}
+              onChange={(e) => setLocalInteres(e.target.value)}
+              onBlur={(e) => onUpdate(t.id, 'interes', e.target.value)}
               placeholder="0.0"
               min="0"
               max="300"
@@ -134,18 +152,18 @@ const TransaccionItem = memo(({
           </div>
 
           {/* Total con interés */}
-          {t.monto > 0 && (
+          {localMonto > 0 && (
             <div className={`p-3 rounded-lg ${modoOscuro ? 'bg-yellow-900/30' : 'bg-yellow-50'} border-2 ${modoOscuro ? 'border-yellow-700' : 'border-yellow-200'}`}>
               <div className="flex justify-between items-center">
                 <span className={`text-sm font-medium ${modoOscuro ? 'text-yellow-400' : 'text-yellow-800'}`}>
                   Total con Interés:
                 </span>
                 <span className={`text-lg font-bold ${modoOscuro ? 'text-yellow-300' : 'text-yellow-900'}`}>
-                  {formatearMoneda(calcularTotalDeuda(t.monto, t.interes))}
+                  {formatearMoneda(calcularTotalDeuda(localMonto, localInteres))}
                 </span>
               </div>
               <p className={`text-xs mt-1 ${modoOscuro ? 'text-yellow-500' : 'text-yellow-700'}`}>
-                💡 Monto original: {formatearMoneda(t.monto)} + Interés {t.interes || 0}%
+                💡 Monto original: {formatearMoneda(localMonto)} + Interés {localInteres || 0}%
               </p>
             </div>
           )}

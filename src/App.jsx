@@ -2,6 +2,43 @@ import React, { useState, useEffect } from 'react';
 import { PlusCircle, Trash2, DollarSign, PieChart, Moon, Sun, RotateCcw } from 'lucide-react';
 import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 
+// Helper para almacenamiento - definido fuera del componente
+const getStorage = () => {
+  if (typeof window !== 'undefined' && window.storage) {
+    return window.storage;
+  }
+  // Fallback a localStorage directo
+  return {
+    async get(key) {
+      try {
+        const value = localStorage.getItem(key);
+        return { value };
+      } catch (error) {
+        console.error('Error al obtener del storage:', error);
+        return { value: null };
+      }
+    },
+    async set(key, value) {
+      try {
+        localStorage.setItem(key, value);
+        return { success: true };
+      } catch (error) {
+        console.error('Error al guardar en storage:', error);
+        return { success: false };
+      }
+    },
+    async delete(key) {
+      try {
+        localStorage.removeItem(key);
+        return { success: true };
+      } catch (error) {
+        console.error('Error al eliminar del storage:', error);
+        return { success: false };
+      }
+    }
+  };
+};
+
 export default function PresupuestoMensual() {
   // Función para formatear números en formato argentino/latinoamericano
   const formatearMoneda = (numero) => {
@@ -9,43 +46,6 @@ export default function PresupuestoMensual() {
     const entero = partes[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     const decimal = partes[1];
     return `$${entero},${decimal}`;
-  };
-
-  // Helper para almacenamiento que funciona como fallback
-  const getStorage = () => {
-    if (typeof window !== 'undefined' && window.storage) {
-      return window.storage;
-    }
-    // Fallback a localStorage directo
-    return {
-      async get(key) {
-        try {
-          const value = localStorage.getItem(key);
-          return { value };
-        } catch (error) {
-          console.error('Error al obtener del storage:', error);
-          return { value: null };
-        }
-      },
-      async set(key, value) {
-        try {
-          localStorage.setItem(key, value);
-          return { success: true };
-        } catch (error) {
-          console.error('Error al guardar en storage:', error);
-          return { success: false };
-        }
-      },
-      async delete(key) {
-        try {
-          localStorage.removeItem(key);
-          return { success: true };
-        } catch (error) {
-          console.error('Error al eliminar del storage:', error);
-          return { success: false };
-        }
-      }
-    };
   };
 
   // Cargar datos desde el almacenamiento al iniciar
@@ -101,18 +101,19 @@ export default function PresupuestoMensual() {
     cargarDatos();
   }, []);
 
-  // Guardar transacciones automáticamente cada vez que cambien
+  // Guardar transacciones automáticamente con debounce
   useEffect(() => {
     if (!cargando && transacciones.length >= 0) {
-      const guardarTransacciones = async () => {
+      const timeoutId = setTimeout(async () => {
         const storage = getStorage();
         try {
           await storage.set('transacciones', JSON.stringify(transacciones));
         } catch (error) {
           console.error('Error al guardar transacciones:', error);
         }
-      };
-      guardarTransacciones();
+      }, 500); // Espera 500ms después del último cambio antes de guardar
+
+      return () => clearTimeout(timeoutId);
     }
   }, [transacciones, cargando]);
 
@@ -197,50 +198,55 @@ export default function PresupuestoMensual() {
   };
 
   const actualizarTransaccion = (id, campo, valor) => {
-    const nuevas = transacciones.map(t => {
-      if (t.id !== id) return t;
+    console.log('Actualizando:', id, campo, valor); // Debug para móvil
 
-      const actualizada = { ...t };
+    setTransacciones(prevTransacciones => {
+      const nuevas = prevTransacciones.map(t => {
+        if (t.id !== id) return t;
 
-      if (campo === 'monto') {
-        // Validar que no sea negativo
-        const montoValor = parseFloat(valor) || 0;
-        actualizada[campo] = montoValor >= 0 ? montoValor : 0;
-      } else if (campo === 'interes') {
-        // Validar rango de interés: 0-300%
-        let interesValor = parseFloat(valor) || 0;
-        if (interesValor < 0) interesValor = 0;
-        if (interesValor > 300) interesValor = 300;
-        actualizada[campo] = interesValor;
-      } else if (campo === 'tipo') {
-        actualizada[campo] = valor;
-        // Resetear interés cuando no es deuda
-        if (valor !== 'deuda') {
-          actualizada.interes = 0;
+        const actualizada = { ...t };
+
+        if (campo === 'monto') {
+          // Validar que no sea negativo
+          const montoValor = parseFloat(valor) || 0;
+          actualizada[campo] = montoValor >= 0 ? montoValor : 0;
+        } else if (campo === 'interes') {
+          // Validar rango de interés: 0-300%
+          let interesValor = parseFloat(valor) || 0;
+          if (interesValor < 0) interesValor = 0;
+          if (interesValor > 300) interesValor = 300;
+          actualizada[campo] = interesValor;
+        } else if (campo === 'tipo') {
+          actualizada[campo] = valor;
+          // Resetear interés cuando no es deuda
+          if (valor !== 'deuda') {
+            actualizada.interes = 0;
+          }
+          // Asignar categoría por defecto según tipo
+          if (valor === 'gasto') {
+            actualizada.categoria = 'casa';
+          } else if (valor === 'ingreso') {
+            actualizada.categoria = 'salario';
+          } else if (valor === 'deuda') {
+            actualizada.categoria = 'prestamo';
+          }
+        } else if (campo === 'categoria' && valor === 'personalizada') {
+          // Si selecciona personalizada, habilitar modo edición
+          actualizada.categoriaPersonalizada = true;
+          actualizada[campo] = '';
+        } else if (campo === 'categoriaTexto') {
+          // Actualizar el texto de categoría personalizada
+          actualizada.categoria = valor;
+        } else {
+          actualizada[campo] = valor;
         }
-        // Asignar categoría por defecto según tipo
-        if (valor === 'gasto') {
-          actualizada.categoria = 'casa';
-        } else if (valor === 'ingreso') {
-          actualizada.categoria = 'salario';
-        } else if (valor === 'deuda') {
-          actualizada.categoria = 'prestamo';
-        }
-      } else if (campo === 'categoria' && valor === 'personalizada') {
-        // Si selecciona personalizada, habilitar modo edición
-        actualizada.categoriaPersonalizada = true;
-        actualizada[campo] = '';
-      } else if (campo === 'categoriaTexto') {
-        // Actualizar el texto de categoría personalizada
-        actualizada.categoria = valor;
-      } else {
-        actualizada[campo] = valor;
-      }
 
-      return actualizada;
+        return actualizada;
+      });
+
+      console.log('Estado actualizado'); // Debug
+      return nuevas;
     });
-
-    setTransacciones(nuevas);
   };
 
   // Función para calcular el total de una deuda con interés

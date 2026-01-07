@@ -24,7 +24,13 @@ export default function PresupuestoMensual() {
         // Cargar transacciones
         const resultadoTransacciones = await window.storage.get('transacciones');
         if (resultadoTransacciones && resultadoTransacciones.value) {
-          setTransacciones(JSON.parse(resultadoTransacciones.value));
+          const transaccionesCargadas = JSON.parse(resultadoTransacciones.value);
+          // Asignar IDs únicos a transacciones que no los tengan (migración)
+          const transaccionesConId = transaccionesCargadas.map((t, index) => ({
+            ...t,
+            id: t.id || Date.now() + index + Math.random()
+          }));
+          setTransacciones(transaccionesConId);
         }
 
         // Cargar preferencia de modo oscuro

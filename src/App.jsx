@@ -3,6 +3,14 @@ import { PlusCircle, Trash2, DollarSign, PieChart, Moon, Sun, RotateCcw } from '
 import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 
 export default function PresupuestoMensual() {
+  // Función para formatear números en formato argentino/latinoamericano
+  const formatearMoneda = (numero) => {
+    const partes = Number(numero).toFixed(2).split('.');
+    const entero = partes[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    const decimal = partes[1];
+    return `$${entero},${decimal}`;
+  };
+
   // Cargar datos desde el almacenamiento al iniciar
   const [transacciones, setTransacciones] = useState([]);
   const [modoOscuro, setModoOscuro] = useState(false);
@@ -336,8 +344,13 @@ export default function PresupuestoMensual() {
       <div className="max-w-7xl mx-auto">
         {/* Título Principal */}
         <div className="text-center mb-6">
+          <img
+            src="/logo.png"
+            alt="Logo Calculadora Objetivo Mensual"
+            className="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-4 drop-shadow-lg"
+          />
           <h1 className={`text-3xl sm:text-4xl font-bold ${textPrimary} mb-2`}>
-            Calculadora de Ingresos, Gastos y Deudas
+            Calculadora Objetivo Mensual
           </h1>
           <p className={`${textSecondary} text-sm sm:text-base`}>
             Administra tus finanzas personales de forma simple y efectiva
@@ -396,19 +409,19 @@ export default function PresupuestoMensual() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
             <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-4 rounded-xl border-2 border-green-200 dark:border-green-700">
               <p className="text-sm text-green-700 dark:text-green-400 font-medium">Ingresos</p>
-              <p className="text-xl sm:text-2xl font-bold text-green-800 dark:text-green-300">${totalIngresos.toFixed(2)}</p>
+              <p className="text-xl sm:text-2xl font-bold text-green-800 dark:text-green-300">{formatearMoneda(totalIngresos)}</p>
             </div>
             <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 p-4 rounded-xl border-2 border-red-200 dark:border-red-700">
               <p className="text-sm text-red-700 dark:text-red-400 font-medium">Gastos</p>
-              <p className="text-xl sm:text-2xl font-bold text-red-800 dark:text-red-300">${totalGastos.toFixed(2)}</p>
+              <p className="text-xl sm:text-2xl font-bold text-red-800 dark:text-red-300">{formatearMoneda(totalGastos)}</p>
             </div>
             <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 p-4 rounded-xl border-2 border-yellow-200 dark:border-yellow-700">
               <p className="text-sm text-yellow-700 dark:text-yellow-400 font-medium">Deudas</p>
-              <p className="text-xl sm:text-2xl font-bold text-yellow-800 dark:text-yellow-300">${totalDeudas.toFixed(2)}</p>
+              <p className="text-xl sm:text-2xl font-bold text-yellow-800 dark:text-yellow-300">{formatearMoneda(totalDeudas)}</p>
             </div>
             <div className={`p-4 rounded-xl border-2 ${diferencia >= 0 ? 'bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-700' : 'bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border-orange-200 dark:border-orange-700'}`}>
               <p className={`text-sm font-medium ${diferencia >= 0 ? 'text-blue-700 dark:text-blue-400' : 'text-orange-700 dark:text-orange-400'}`}>Balance</p>
-              <p className={`text-xl sm:text-2xl font-bold ${diferencia >= 0 ? 'text-blue-800 dark:text-blue-300' : 'text-orange-800 dark:text-orange-300'}`}>${diferencia.toFixed(2)}</p>
+              <p className={`text-xl sm:text-2xl font-bold ${diferencia >= 0 ? 'text-blue-800 dark:text-blue-300' : 'text-orange-800 dark:text-orange-300'}`}>{formatearMoneda(diferencia)}</p>
             </div>
           </div>
         </div>
@@ -538,7 +551,7 @@ export default function PresupuestoMensual() {
                   {/* Total calculado - Solo visible para deudas */}
                   {t.tipo === 'deuda' && t.monto > 0 && (
                     <div className={`px-2 py-1.5 rounded text-xs font-semibold ${modoOscuro ? 'bg-yellow-900/30 text-yellow-400' : 'bg-yellow-100 text-yellow-800'} whitespace-nowrap`}>
-                      Total: ${calcularTotalDeuda(t.monto, t.interes).toFixed(2)}
+                      Total: {formatearMoneda(calcularTotalDeuda(t.monto, t.interes))}
                     </div>
                   )}
                 </div>
@@ -594,7 +607,7 @@ export default function PresupuestoMensual() {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value) => `${value.toFixed(2)}`} />
+                    <Tooltip formatter={(value) => formatearMoneda(value)} />
                     <Legend />
                   </RechartsPie>
                 </ResponsiveContainer>
@@ -630,7 +643,7 @@ export default function PresupuestoMensual() {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value) => `${value.toFixed(2)}`} />
+                    <Tooltip formatter={(value) => formatearMoneda(value)} />
                     <Legend />
                   </RechartsPie>
                 </ResponsiveContainer>
@@ -666,7 +679,7 @@ export default function PresupuestoMensual() {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value) => `${value.toFixed(2)}`} />
+                    <Tooltip formatter={(value) => formatearMoneda(value)} />
                     <Legend />
                   </RechartsPie>
                 </ResponsiveContainer>
@@ -689,7 +702,7 @@ export default function PresupuestoMensual() {
                 {todosLosIngresos.map((item) => (
                   <div key={item.key} className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-3 rounded-lg border border-green-200 dark:border-green-700">
                     <p className="text-xs text-green-700 dark:text-green-400 font-medium mb-1">{item.name}</p>
-                    <p className="text-lg font-bold text-green-800 dark:text-green-300">${item.value.toFixed(2)}</p>
+                    <p className="text-lg font-bold text-green-800 dark:text-green-300">{formatearMoneda(item.value)}</p>
                   </div>
                 ))}
               </div>
@@ -704,7 +717,7 @@ export default function PresupuestoMensual() {
                 {todosLosGastos.map((item) => (
                   <div key={item.key} className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 p-3 rounded-lg border border-red-200 dark:border-red-700">
                     <p className="text-xs text-red-700 dark:text-red-400 font-medium mb-1">{item.name}</p>
-                    <p className="text-lg font-bold text-red-800 dark:text-red-300">${item.value.toFixed(2)}</p>
+                    <p className="text-lg font-bold text-red-800 dark:text-red-300">{formatearMoneda(item.value)}</p>
                   </div>
                 ))}
               </div>
@@ -719,7 +732,7 @@ export default function PresupuestoMensual() {
                 {todasLasDeudas.map((item) => (
                   <div key={item.key} className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 p-3 rounded-lg border border-yellow-200 dark:border-yellow-700">
                     <p className="text-xs text-yellow-700 dark:text-yellow-400 font-medium mb-1">{item.name}</p>
-                    <p className="text-lg font-bold text-yellow-800 dark:text-yellow-300">${item.value.toFixed(2)}</p>
+                    <p className="text-lg font-bold text-yellow-800 dark:text-yellow-300">{formatearMoneda(item.value)}</p>
                   </div>
                 ))}
               </div>

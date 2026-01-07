@@ -8,6 +8,9 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      devOptions: {
+        enabled: false
+      },
       includeAssets: ['logo.png'],
       manifest: {
         name: 'Calculadora de Ingresos, Costos y Deudas',

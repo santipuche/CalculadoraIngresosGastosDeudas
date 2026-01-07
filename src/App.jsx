@@ -1,8 +1,54 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { PlusCircle, Trash2, DollarSign, PieChart, Moon, Sun, RotateCcw } from 'lucide-react';
 import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import TransaccionItem from './TransaccionItem.jsx';
+
+// Helper para almacenamiento - definido fuera del componente
+const getStorage = () => {
+  if (typeof window !== 'undefined' && window.storage) {
+    return window.storage;
+  }
+  // Fallback a localStorage directo
+  return {
+    async get(key) {
+      try {
+        const value = localStorage.getItem(key);
+        return { value };
+      } catch (error) {
+        console.error('Error al obtener del storage:', error);
+        return { value: null };
+      }
+    },
+    async set(key, value) {
+      try {
+        localStorage.setItem(key, value);
+        return { success: true };
+      } catch (error) {
+        console.error('Error al guardar en storage:', error);
+        return { success: false };
+      }
+    },
+    async delete(key) {
+      try {
+        localStorage.removeItem(key);
+        return { success: true };
+      } catch (error) {
+        console.error('Error al eliminar del storage:', error);
+        return { success: false };
+      }
+    }
+  };
+};
 
 export default function PresupuestoMensual() {
+  // Función para formatear números en formato argentino/latinoamericano
+  const formatearMoneda = (numero) => {
+    const partes = Number(numero).toFixed(2).split('.');
+    const entero = partes[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    const decimal = partes[1];
+    return `$${entero},${decimal}`;
+  };
+
   // Cargar datos desde el almacenamiento al iniciar
   const [transacciones, setTransacciones] = useState([]);
   const [modoOscuro, setModoOscuro] = useState(false);
@@ -12,21 +58,42 @@ export default function PresupuestoMensual() {
   // Cargar datos al montar el componente
   useEffect(() => {
     const cargarDatos = async () => {
+      const storage = getStorage();
       try {
         // Cargar transacciones
-        const resultadoTransacciones = await window.storage.get('transacciones');
+        const resultadoTransacciones = await storage.get('transacciones');
         if (resultadoTransacciones && resultadoTransacciones.value) {
-          setTransacciones(JSON.parse(resultadoTransacciones.value));
+          try {
+            const transaccionesCargadas = JSON.parse(resultadoTransacciones.value);
+            // Asignar IDs únicos a transacciones que no los tengan (migración)
+            const transaccionesConId = transaccionesCargadas.map((t, index) => ({
+              ...t,
+              id: t.id || Date.now() + index + Math.random()
+            }));
+            setTransacciones(transaccionesConId);
+          } catch (parseError) {
+            console.error('Error al parsear transacciones, limpiando datos:', parseError);
+            // Si los datos están corruptos, limpiar
+            await storage.delete('transacciones');
+            setTransacciones([]);
+          }
         }
 
         // Cargar preferencia de modo oscuro
-        const resultadoModo = await window.storage.get('modoOscuro');
+        const resultadoModo = await storage.get('modoOscuro');
         if (resultadoModo && resultadoModo.value) {
-          setModoOscuro(JSON.parse(resultadoModo.value));
+          try {
+            setModoOscuro(JSON.parse(resultadoModo.value));
+          } catch (parseError) {
+            console.error('Error al parsear modo oscuro:', parseError);
+            setModoOscuro(false);
+          }
         }
       } catch (error) {
         console.log('Primera vez usando la app o error al cargar:', error);
         // Si es la primera vez, los valores ya están en 0 por defecto
+        setTransacciones([]);
+        setModoOscuro(false);
       } finally {
         setCargando(false);
       }
@@ -35,17 +102,19 @@ export default function PresupuestoMensual() {
     cargarDatos();
   }, []);
 
-  // Guardar transacciones automáticamente cada vez que cambien
+  // Guardar transacciones automáticamente con debounce
   useEffect(() => {
     if (!cargando && transacciones.length >= 0) {
-      const guardarTransacciones = async () => {
+      const timeoutId = setTimeout(async () => {
+        const storage = getStorage();
         try {
-          await window.storage.set('transacciones', JSON.stringify(transacciones));
+          await storage.set('transacciones', JSON.stringify(transacciones));
         } catch (error) {
           console.error('Error al guardar transacciones:', error);
         }
-      };
-      guardarTransacciones();
+      }, 500); // Espera 500ms después del último cambio antes de guardar
+
+      return () => clearTimeout(timeoutId);
     }
   }, [transacciones, cargando]);
 
@@ -53,8 +122,9 @@ export default function PresupuestoMensual() {
   useEffect(() => {
     if (!cargando) {
       const guardarModo = async () => {
+        const storage = getStorage();
         try {
-          await window.storage.set('modoOscuro', JSON.stringify(modoOscuro));
+          await storage.set('modoOscuro', JSON.stringify(modoOscuro));
         } catch (error) {
           console.error('Error al guardar modo oscuro:', error);
         }
@@ -101,7 +171,8 @@ export default function PresupuestoMensual() {
 
   const agregarTransaccion = () => {
     const hoy = new Date().toISOString().split('T')[0];
-    setTransacciones([...transacciones, {
+    setTransacciones(prevTransacciones => [...prevTransacciones, {
+      id: Date.now() + Math.random(), // ID único para cada transacción
       tipo: 'gasto',
       categoria: 'casa',
       concepto: '',
@@ -111,61 +182,57 @@ export default function PresupuestoMensual() {
     }]);
   };
 
-  const eliminarTransaccion = (index) => {
-    setTransacciones(transacciones.filter((_, i) => i !== index));
-  };
+  const eliminarTransaccion = useCallback((id) => {
+    setTransacciones(prevTransacciones => prevTransacciones.filter(t => t.id !== id));
+  }, []);
 
   const reiniciar = async () => {
     setTransacciones([]);
     setMostrarConfirmacion(false);
     // Limpiar el almacenamiento
+    const storage = getStorage();
     try {
-      await window.storage.delete('transacciones');
+      await storage.delete('transacciones');
     } catch (error) {
       console.error('Error al limpiar datos:', error);
     }
   };
 
-  const actualizarTransaccion = (index, campo, valor) => {
-    const nuevas = [...transacciones];
+  const actualizarTransaccion = useCallback((id, campo, valor) => {
+    setTransacciones(prevTransacciones => {
+      return prevTransacciones.map(t => {
+        if (t.id !== id) return t;
 
-    if (campo === 'monto') {
-      // Validar que no sea negativo
-      const montoValor = parseFloat(valor) || 0;
-      nuevas[index][campo] = montoValor >= 0 ? montoValor : 0;
-    } else if (campo === 'interes') {
-      // Validar rango de interés: 0-300%
-      let interesValor = parseFloat(valor) || 0;
-      if (interesValor < 0) interesValor = 0;
-      if (interesValor > 300) interesValor = 300;
-      nuevas[index][campo] = interesValor;
-    } else if (campo === 'tipo') {
-      nuevas[index][campo] = valor;
-      // Resetear interés cuando no es deuda
-      if (valor !== 'deuda') {
-        nuevas[index].interes = 0;
-      }
-      // Asignar categoría por defecto según tipo
-      if (valor === 'gasto') {
-        nuevas[index].categoria = 'casa';
-      } else if (valor === 'ingreso') {
-        nuevas[index].categoria = 'salario';
-      } else if (valor === 'deuda') {
-        nuevas[index].categoria = 'prestamo';
-      }
-    } else if (campo === 'categoria' && valor === 'personalizada') {
-      // Si selecciona personalizada, habilitar modo edición
-      nuevas[index].categoriaPersonalizada = true;
-      nuevas[index][campo] = '';
-    } else if (campo === 'categoriaTexto') {
-      // Actualizar el texto de categoría personalizada
-      nuevas[index].categoria = valor;
-    } else {
-      nuevas[index][campo] = valor;
-    }
+        const actualizada = { ...t };
 
-    setTransacciones(nuevas);
-  };
+        if (campo === 'monto') {
+          const montoValor = parseFloat(valor) || 0;
+          actualizada[campo] = montoValor >= 0 ? montoValor : 0;
+        } else if (campo === 'interes') {
+          let interesValor = parseFloat(valor) || 0;
+          if (interesValor < 0) interesValor = 0;
+          if (interesValor > 300) interesValor = 300;
+          actualizada[campo] = interesValor;
+        } else if (campo === 'tipo') {
+          actualizada[campo] = valor;
+          if (valor !== 'deuda') {
+            actualizada.interes = 0;
+          }
+          if (valor === 'gasto') {
+            actualizada.categoria = 'casa';
+          } else if (valor === 'ingreso') {
+            actualizada.categoria = 'salario';
+          } else if (valor === 'deuda') {
+            actualizada.categoria = 'prestamo';
+          }
+        } else {
+          actualizada[campo] = valor;
+        }
+
+        return actualizada;
+      });
+    });
+  }, []);
 
   // Función para calcular el total de una deuda con interés
   const calcularTotalDeuda = (monto, interes) => {
@@ -336,8 +403,13 @@ export default function PresupuestoMensual() {
       <div className="max-w-7xl mx-auto">
         {/* Título Principal */}
         <div className="text-center mb-6">
+          <img
+            src={`${import.meta.env.BASE_URL}logo.png`}
+            alt="Logo Calculadora de Ingresos, Costos y Deudas"
+            className="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-4 drop-shadow-lg"
+          />
           <h1 className={`text-3xl sm:text-4xl font-bold ${textPrimary} mb-2`}>
-            Calculadora de Ingresos, Gastos y Deudas
+            Calculadora de Ingresos, Costos y Deudas
           </h1>
           <p className={`${textSecondary} text-sm sm:text-base`}>
             Administra tus finanzas personales de forma simple y efectiva
@@ -396,19 +468,19 @@ export default function PresupuestoMensual() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
             <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-4 rounded-xl border-2 border-green-200 dark:border-green-700">
               <p className="text-sm text-green-700 dark:text-green-400 font-medium">Ingresos</p>
-              <p className="text-xl sm:text-2xl font-bold text-green-800 dark:text-green-300">${totalIngresos.toFixed(2)}</p>
+              <p className="text-xl sm:text-2xl font-bold text-green-800 dark:text-green-300">{formatearMoneda(totalIngresos)}</p>
             </div>
             <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 p-4 rounded-xl border-2 border-red-200 dark:border-red-700">
               <p className="text-sm text-red-700 dark:text-red-400 font-medium">Gastos</p>
-              <p className="text-xl sm:text-2xl font-bold text-red-800 dark:text-red-300">${totalGastos.toFixed(2)}</p>
+              <p className="text-xl sm:text-2xl font-bold text-red-800 dark:text-red-300">{formatearMoneda(totalGastos)}</p>
             </div>
             <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 p-4 rounded-xl border-2 border-yellow-200 dark:border-yellow-700">
               <p className="text-sm text-yellow-700 dark:text-yellow-400 font-medium">Deudas</p>
-              <p className="text-xl sm:text-2xl font-bold text-yellow-800 dark:text-yellow-300">${totalDeudas.toFixed(2)}</p>
+              <p className="text-xl sm:text-2xl font-bold text-yellow-800 dark:text-yellow-300">{formatearMoneda(totalDeudas)}</p>
             </div>
             <div className={`p-4 rounded-xl border-2 ${diferencia >= 0 ? 'bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-700' : 'bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border-orange-200 dark:border-orange-700'}`}>
               <p className={`text-sm font-medium ${diferencia >= 0 ? 'text-blue-700 dark:text-blue-400' : 'text-orange-700 dark:text-orange-400'}`}>Balance</p>
-              <p className={`text-xl sm:text-2xl font-bold ${diferencia >= 0 ? 'text-blue-800 dark:text-blue-300' : 'text-orange-800 dark:text-orange-300'}`}>${diferencia.toFixed(2)}</p>
+              <p className={`text-xl sm:text-2xl font-bold ${diferencia >= 0 ? 'text-blue-800 dark:text-blue-300' : 'text-orange-800 dark:text-orange-300'}`}>{formatearMoneda(diferencia)}</p>
             </div>
           </div>
         </div>
@@ -428,129 +500,22 @@ export default function PresupuestoMensual() {
 
           {/* Contenedor con scroll limitado */}
           <div className="max-h-96 overflow-y-auto pr-2 space-y-2">
-            {transacciones.map((t, index) => (
-              <div key={index} className={`p-3 rounded-lg border ${borderColor} ${modoOscuro ? 'bg-slate-700/30' : 'bg-slate-50'}`}>
-                {/* Primera fila: Fecha, Tipo y Categoría */}
-                <div className="flex items-center gap-2 mb-2">
-                  <input
-                    type="date"
-                    value={t.fecha}
-                    onChange={(e) => actualizarTransaccion(index, 'fecha', e.target.value)}
-                    className={`w-32 px-2 py-1.5 border rounded text-xs ${inputBg}`}
-                  />
-
-                  <select
-                    value={t.tipo}
-                    onChange={(e) => actualizarTransaccion(index, 'tipo', e.target.value)}
-                    className={`w-24 px-2 py-1.5 border rounded text-xs ${inputBg}`}
-                  >
-                    <option value="gasto">Gasto</option>
-                    <option value="ingreso">Ingreso</option>
-                    <option value="deuda">Deuda</option>
-                  </select>
-
-                  {/* Categoría: Select o Input según si es personalizada */}
-                  {t.categoriaPersonalizada ? (
-                    <input
-                      type="text"
-                      placeholder="Escribe tu categoría"
-                      value={t.categoria}
-                      onChange={(e) => actualizarTransaccion(index, 'categoriaTexto', e.target.value)}
-                      onBlur={() => {
-                        // Al salir del campo, si está vacío, volver al select
-                        if (!t.categoria) {
-                          const nuevas = [...transacciones];
-                          nuevas[index].categoriaPersonalizada = false;
-                          nuevas[index].categoria = t.tipo === 'gasto' ? 'casa' : t.tipo === 'ingreso' ? 'salario' : 'prestamo';
-                          setTransacciones(nuevas);
-                        }
-                      }}
-                      className={`flex-1 min-w-0 px-2 py-1.5 border rounded text-xs ${inputBg}`}
-                      autoFocus
-                    />
-                  ) : (
-                    <select
-                      value={t.categoria}
-                      onChange={(e) => actualizarTransaccion(index, 'categoria', e.target.value)}
-                      className={`flex-1 min-w-0 px-2 py-1.5 border rounded text-xs ${inputBg}`}
-                    >
-                      {t.tipo === 'gasto'
-                        ? Object.entries(categoriasGastos).map(([key, nombre]) => (
-                            <option key={key} value={key}>{nombre}</option>
-                          ))
-                        : t.tipo === 'ingreso'
-                        ? Object.entries(categoriasIngresos).map(([key, nombre]) => (
-                            <option key={key} value={key}>{nombre}</option>
-                          ))
-                        : Object.entries(categoriasDeudas).map(([key, nombre]) => (
-                            <option key={key} value={key}>{nombre}</option>
-                          ))
-                      }
-                    </select>
-                  )}
-
-                  <button
-                    onClick={() => eliminarTransaccion(index)}
-                    className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-
-                {/* Segunda fila: Concepto, Monto e Interés (si es deuda) */}
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    placeholder="Concepto"
-                    value={t.concepto}
-                    onChange={(e) => actualizarTransaccion(index, 'concepto', e.target.value)}
-                    className={`flex-1 min-w-0 px-2 py-1.5 border rounded text-xs ${inputBg}`}
-                  />
-
-                  <input
-                    type="number"
-                    placeholder="Monto"
-                    value={t.monto || ''}
-                    onChange={(e) => actualizarTransaccion(index, 'monto', e.target.value)}
-                    min="0"
-                    step="0.01"
-                    className={`w-24 px-2 py-1.5 border rounded text-xs ${inputBg}`}
-                  />
-
-                  {/* Campo de Interés - Solo visible para deudas */}
-                  {t.tipo === 'deuda' && (
-                    <div className="flex items-center gap-1">
-                      <input
-                        type="number"
-                        placeholder="Interés %"
-                        value={t.interes || ''}
-                        onChange={(e) => actualizarTransaccion(index, 'interes', e.target.value)}
-                        min="0"
-                        max="300"
-                        step="0.1"
-                        className={`w-20 px-2 py-1.5 border rounded text-xs ${inputBg}`}
-                        title="Porcentaje de interés (0-300%)"
-                      />
-                      <span className={`text-xs ${textSecondary}`}>%</span>
-                    </div>
-                  )}
-
-                  {/* Total calculado - Solo visible para deudas */}
-                  {t.tipo === 'deuda' && t.monto > 0 && (
-                    <div className={`px-2 py-1.5 rounded text-xs font-semibold ${modoOscuro ? 'bg-yellow-900/30 text-yellow-400' : 'bg-yellow-100 text-yellow-800'} whitespace-nowrap`}>
-                      Total: ${calcularTotalDeuda(t.monto, t.interes).toFixed(2)}
-                    </div>
-                  )}
-                </div>
-
-                {/* Ayuda contextual para deudas */}
-                {t.tipo === 'deuda' && (
-                  <div className={`mt-2 text-xs ${textSecondary} flex items-center gap-1`}>
-                    <span>💡</span>
-                    <span>El interés se suma automáticamente al monto de la deuda</span>
-                  </div>
-                )}
-              </div>
+            {transacciones.map((t) => (
+              <TransaccionItem
+                key={t.id}
+                transaccion={t}
+                onUpdate={actualizarTransaccion}
+                onDelete={eliminarTransaccion}
+                categoriasGastos={categoriasGastos}
+                categoriasIngresos={categoriasIngresos}
+                categoriasDeudas={categoriasDeudas}
+                inputBg={inputBg}
+                borderColor={borderColor}
+                modoOscuro={modoOscuro}
+                textSecondary={textSecondary}
+                formatearMoneda={formatearMoneda}
+                calcularTotalDeuda={calcularTotalDeuda}
+              />
             ))}
 
             {transacciones.length === 0 && (
@@ -594,7 +559,7 @@ export default function PresupuestoMensual() {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value) => `${value.toFixed(2)}`} />
+                    <Tooltip formatter={(value) => formatearMoneda(value)} />
                     <Legend />
                   </RechartsPie>
                 </ResponsiveContainer>
@@ -630,7 +595,7 @@ export default function PresupuestoMensual() {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value) => `${value.toFixed(2)}`} />
+                    <Tooltip formatter={(value) => formatearMoneda(value)} />
                     <Legend />
                   </RechartsPie>
                 </ResponsiveContainer>
@@ -666,7 +631,7 @@ export default function PresupuestoMensual() {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value) => `${value.toFixed(2)}`} />
+                    <Tooltip formatter={(value) => formatearMoneda(value)} />
                     <Legend />
                   </RechartsPie>
                 </ResponsiveContainer>
@@ -689,7 +654,7 @@ export default function PresupuestoMensual() {
                 {todosLosIngresos.map((item) => (
                   <div key={item.key} className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-3 rounded-lg border border-green-200 dark:border-green-700">
                     <p className="text-xs text-green-700 dark:text-green-400 font-medium mb-1">{item.name}</p>
-                    <p className="text-lg font-bold text-green-800 dark:text-green-300">${item.value.toFixed(2)}</p>
+                    <p className="text-lg font-bold text-green-800 dark:text-green-300">{formatearMoneda(item.value)}</p>
                   </div>
                 ))}
               </div>
@@ -704,7 +669,7 @@ export default function PresupuestoMensual() {
                 {todosLosGastos.map((item) => (
                   <div key={item.key} className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 p-3 rounded-lg border border-red-200 dark:border-red-700">
                     <p className="text-xs text-red-700 dark:text-red-400 font-medium mb-1">{item.name}</p>
-                    <p className="text-lg font-bold text-red-800 dark:text-red-300">${item.value.toFixed(2)}</p>
+                    <p className="text-lg font-bold text-red-800 dark:text-red-300">{formatearMoneda(item.value)}</p>
                   </div>
                 ))}
               </div>
@@ -719,7 +684,7 @@ export default function PresupuestoMensual() {
                 {todasLasDeudas.map((item) => (
                   <div key={item.key} className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 p-3 rounded-lg border border-yellow-200 dark:border-yellow-700">
                     <p className="text-xs text-yellow-700 dark:text-yellow-400 font-medium mb-1">{item.name}</p>
-                    <p className="text-lg font-bold text-yellow-800 dark:text-yellow-300">${item.value.toFixed(2)}</p>
+                    <p className="text-lg font-bold text-yellow-800 dark:text-yellow-300">{formatearMoneda(item.value)}</p>
                   </div>
                 ))}
               </div>

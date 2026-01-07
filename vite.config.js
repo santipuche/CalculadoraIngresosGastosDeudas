@@ -8,22 +8,26 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['vite.svg'],
+      devOptions: {
+        enabled: false
+      },
+      includeAssets: ['logo.png'],
       manifest: {
-        name: 'Finanzas Pro',
-        short_name: 'Finanzas Pro',
+        name: 'Calculadora de Ingresos, Costos y Deudas',
+        short_name: 'Calc. Finanzas',
         description: 'Administra tus finanzas personales de forma simple y efectiva',
+        version: 'v2.0.0',
         theme_color: '#2563eb',
         background_color: '#0f172a',
         display: 'standalone',
         orientation: 'portrait',
-        scope: '/CalculadoraObjetivoMensual/',
-        start_url: '/CalculadoraObjetivoMensual/',
+        scope: '/CalculadoraIngresosGastosDeudas/',
+        start_url: '/CalculadoraIngresosGastosDeudas/',
         icons: [
           {
-            src: '/CalculadoraObjetivoMensual/vite.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
+            src: '/CalculadoraIngresosGastosDeudas/logo.png',
+            sizes: '512x512',
+            type: 'image/png',
             purpose: 'any maskable'
           }
         ]
@@ -63,5 +67,5 @@ export default defineConfig({
       }
     })
   ],
-  base: '/CalculadoraObjetivoMensual/'
+  base: '/CalculadoraIngresosGastosDeudas/'
 })

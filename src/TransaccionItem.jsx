@@ -29,7 +29,7 @@ const TransaccionItem = memo(({
     setLocalMonto(t.monto || '');
     setLocalInteres(t.interes || '');
     setLocalFecha(t.fecha || '');
-  }, [t.id]); // Solo cuando cambia la transacción completa, no en cada campo
+  }, [t.concepto, t.monto, t.interes, t.fecha, t.id]); // Sincronizar cuando cambien los valores
 
   return (
     <div className={`p-4 rounded-xl border-2 ${borderColor} ${modoOscuro ? 'bg-slate-700/40' : 'bg-white'} shadow-sm`}>
@@ -42,7 +42,8 @@ const TransaccionItem = memo(({
           <select
             value={t.tipo || 'gasto'}
             onChange={(e) => onUpdate(t.id, 'tipo', e.target.value)}
-            className={`w-full px-3 py-2.5 border-2 rounded-lg text-sm font-medium ${inputBg} focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+            className={`w-full px-3 py-2.5 border-2 rounded-lg text-sm font-medium ${inputBg} ${modoOscuro ? 'text-white' : 'text-gray-900'} focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+            style={{ WebkitTextFillColor: modoOscuro ? 'white' : '#111827', opacity: 1 }}
           >
             <option value="gasto">💸 Gasto</option>
             <option value="ingreso">💰 Ingreso</option>
@@ -66,7 +67,8 @@ const TransaccionItem = memo(({
         <select
           value={t.categoria || 'casa'}
           onChange={(e) => onUpdate(t.id, 'categoria', e.target.value)}
-          className={`w-full px-3 py-2.5 border-2 rounded-lg text-sm ${inputBg} focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+          className={`w-full px-3 py-2.5 border-2 rounded-lg text-sm ${inputBg} ${modoOscuro ? 'text-white' : 'text-gray-900'} focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+          style={{ WebkitTextFillColor: modoOscuro ? 'white' : '#111827', opacity: 1 }}
         >
           {t.tipo === 'gasto'
             ? Object.entries(categoriasGastos).filter(([k]) => k !== 'personalizada').map(([key, nombre]) => (
@@ -94,7 +96,8 @@ const TransaccionItem = memo(({
           onChange={(e) => setLocalConcepto(e.target.value)}
           onBlur={(e) => onUpdate(t.id, 'concepto', e.target.value)}
           placeholder="Ej: Supermercado, Salario, etc."
-          className={`w-full px-3 py-2.5 border-2 rounded-lg text-sm ${inputBg} focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+          className={`w-full px-3 py-2.5 border-2 rounded-lg text-sm ${inputBg} ${modoOscuro ? 'text-white' : 'text-gray-900'} focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+          style={{ WebkitTextFillColor: modoOscuro ? 'white' : '#111827', opacity: 1 }}
         />
       </div>
 
@@ -109,7 +112,8 @@ const TransaccionItem = memo(({
             value={localFecha}
             onChange={(e) => setLocalFecha(e.target.value)}
             onBlur={(e) => onUpdate(t.id, 'fecha', e.target.value)}
-            className={`w-full px-3 py-2.5 border-2 rounded-lg text-sm ${inputBg} focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+            className={`w-full px-3 py-2.5 border-2 rounded-lg text-sm ${inputBg} ${modoOscuro ? 'text-white' : 'text-gray-900'} focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+            style={{ WebkitTextFillColor: modoOscuro ? 'white' : '#111827', opacity: 1 }}
           />
         </div>
         <div>
@@ -125,7 +129,8 @@ const TransaccionItem = memo(({
             placeholder="0.00"
             min="0"
             step="0.01"
-            className={`w-full px-3 py-2.5 border-2 rounded-lg text-sm ${inputBg} focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+            className={`w-full px-3 py-2.5 border-2 rounded-lg text-sm ${inputBg} ${modoOscuro ? 'text-white' : 'text-gray-900'} focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+            style={{ WebkitTextFillColor: modoOscuro ? 'white' : '#111827', opacity: 1 }}
           />
         </div>
       </div>
@@ -147,7 +152,8 @@ const TransaccionItem = memo(({
               min="0"
               max="300"
               step="0.1"
-              className={`w-full px-3 py-2.5 border-2 rounded-lg text-sm ${inputBg} focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+              className={`w-full px-3 py-2.5 border-2 rounded-lg text-sm ${inputBg} ${modoOscuro ? 'text-white' : 'text-gray-900'} focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+              style={{ WebkitTextFillColor: modoOscuro ? 'white' : '#111827', opacity: 1 }}
             />
           </div>
 

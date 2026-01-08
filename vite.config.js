@@ -13,10 +13,10 @@ export default defineConfig({
       },
       includeAssets: ['logo.png'],
       manifest: {
-        name: 'Calculadora de Ingresos, Costos y Deudas',
-        short_name: 'Calc. Finanzas',
+        name: 'Calculadora de Ingresos, Gastos y Deudas',
+        short_name: 'Calc. Ingresos',
         description: 'Administra tus finanzas personales de forma simple y efectiva',
-        version: 'v2.0.0',
+        version: 'v2.1.0',
         theme_color: '#2563eb',
         background_color: '#0f172a',
         display: 'standalone',
